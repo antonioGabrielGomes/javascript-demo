@@ -1,0 +1,11 @@
+{
+    "scripts": {
+        "start": "nodemon index.js"
+    },
+    "dependencies": {
+        "websocket": "^1.0.34"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1"
+    }
+}
