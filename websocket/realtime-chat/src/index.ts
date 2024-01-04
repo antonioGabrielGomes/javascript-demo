@@ -6,6 +6,12 @@ import { Server } from 'socket.io';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 
+// import { availableParallelism } from 'node:os';
+import cluster from 'node:cluster';
+import { createAdapter, setupPrimary } from '@socket.io/cluster-adapter';
+import process from 'node:process';
+import os from 'node:os';
+
 async function main() {
     // open the databse file
     const db = await open({
@@ -25,7 +31,9 @@ async function main() {
     const app = express();
     const server = createServer(app);
     const io = new Server(server, {
-        connectionStateRecovery: {}
+        connectionStateRecovery: {},
+        // set up the adapter on each worker thread
+        adapter: createAdapter()
     });
 
     app.get('/', (req, res) => {
@@ -46,7 +54,7 @@ async function main() {
                 // TODO handle the failure
                 if (e.errno === 19 /** SQLITE_CONSTRAINT */) {
                     // the messsage was already inserted, so we notify the client
-                    callback();                    
+                    callback();
                 } else {
                     // nothing to do, just let the client retry
                 }
@@ -77,11 +85,31 @@ async function main() {
         // });
     });
 
-    server.listen(3000, () => {
-        console.log('server running at http://localhost:3000');
-    });
+    //   server.listen(3000, () => {
+    //       console.log('server running at http://localhost:3000');
+    //   });
 
+    // each worker will listen on a distinct port
+    const port = process.env.PORT;
+
+    server.listen(port, () => {
+        console.log(`server running at http://localhost:${port}`);
+    });
 
 }
 
-main();
+if (cluster.isPrimary) {
+    // const numCPUs = availableParallelism();
+    const numCPUs = os.cpus().length;
+    // console.log(numCPUs);
+    for (let i = 0; i < numCPUs; i++) {
+        cluster.fork({
+            PORT: 3000 + i
+        });
+    }
+
+    setupPrimary();
+} else {
+    main();
+}
+
