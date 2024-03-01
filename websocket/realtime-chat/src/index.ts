@@ -1,10 +1,11 @@
 import express from 'express';
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import path, { dirname, join } from 'node:path';
 import { Server } from 'socket.io';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import cors from 'cors';
 
 // import { availableParallelism } from 'node:os';
 import cluster from 'node:cluster';
@@ -36,12 +37,21 @@ async function main() {
         adapter: createAdapter()
     });
 
+    app.use(cors())
+
+    app.use(express.static(path.join(__dirname, 'public')));
+
     app.get('/', (req, res) => {
         res.sendFile(join(__dirname, 'index.html'));
     });
 
+    app.get('/chat', (req, res) => {
+        res.sendFile(join(__dirname, 'chat.html'));
+    });
+
     io.on('connection', async (socket) => {
-        /// console.log('a user connected');
+        console.log('a user connected');
+        console.log(socket);
 
         socket.on('chat message', async (msg, clientOffset, callback) => {
             // io.emit('chat message', msg);

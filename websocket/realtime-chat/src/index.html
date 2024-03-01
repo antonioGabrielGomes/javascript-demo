@@ -1,123 +1,202 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>Socket.IO chat</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8 CHAT</title>
     <style>
         body {
-            margin: 0;
-            padding-bottom: 3rem;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        #form {
-            background: rgba(0, 0, 0, 0.15);
-            padding: 0.25rem;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
             display: flex;
-            height: 3rem;
-            box-sizing: border-box;
-            backdrop-filter: blur(10px);
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-image: url('./8chat.jpg');
+            background-size: cover;
+            background-position: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            /* Cor do texto ajustada para melhor contraste */
+
         }
 
-        #input {
-            border: none;
-            padding: 0 1rem;
-            flex-grow: 1;
-            border-radius: 2rem;
-            margin: 0.25rem;
+        #container {
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            /* Ajuste da opacidade e cor do fundo */
+            padding: 20px;
+            border-radius: 15px;
+            width: 100%;
+            /* Arredondamento um pouco maior */
+        }
+    </style>
+    <style>
+        .container-chat {
+            display: flex;
+            height: 100%;
         }
 
-        #input:focus {
-            outline: none;
+        .left-column {
+            flex: 0 0 30%;
+            background-color: #f0f0f0;
+            padding: 20px;
         }
 
-        #form>button {
-            background: #333;
-            border: none;
-            padding: 0 1rem;
-            margin: 0.25rem;
-            border-radius: 3px;
-            outline: none;
-            color: #fff;
+        .right-column {
+            flex: 1;
+            padding: 20px;
         }
 
-        #messages {
+        @media (max-width: 768px) {
+            .container-chat {
+                flex-direction: column;
+            }
+
+            .left-column,
+            .right-column {
+                flex: 1;
+            }
+
+            .left-column {
+                height: 10vh;
+            }
+        }
+
+        .user-profile-chat {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px;
+            /* Redução do espaçamento interno */
+            margin-bottom: 8px;
+            border-radius: 8px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .user-profile-chat img {
+            max-width: 100%;
+            border-radius: 50%;
+        }
+
+        .messages-chat {
             list-style-type: none;
             margin: 0;
             padding: 0;
         }
 
-        #messages>li {
+        .messages-chat>li {
             padding: 0.5rem 1rem;
         }
 
-        #messages>li:nth-child(odd) {
+        .messages-chat>li:nth-child(odd) {
             background: #efefef;
         }
+
+
+        #form-chat>button {
+            border: none;
+            padding: 10px;
+            box-sizing: border-box;
+            background-color: #333;
+            margin: 0.25rem;
+            border-radius: 3px;
+            outline: none;
+            color: #fff;
+            cursor: pointer;
+            border: 1px solid #ccc;
+        }
+
+        #input-chat {
+            border: none;
+            padding: 0 1rem;
+            flex-grow: 1;
+            border-radius: 2rem;
+            margin: 0.25rem;
+            width: 70%;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            padding: 10px;
+        }
+
+        #input-chat:focus {
+            outline: none;
+        }
     </style>
+
 </head>
 
 <body>
-    <ul id="messages"></ul>
-    <form id="form" action="">
-        <input id="input" autocomplete="off" /><button>Send</button>
-        <button id="toggle-btn">Disconnect</button>
-    </form>
+    <div id="container">
+        <div id="loading-nickname">
+            <h1>Hi what's up, welcome to 8 chat</h1>
+            <input type="text" placeholder="Nickname" id="nickname">
+            <br>
+            <button onclick="obterNickname()">Enter chat</button>
+        </div>
+
+
+        <div class="container-chat">
+            <div class="left-column">
+                <div class="user-profile-chat">
+                    <img src="./p1.jpg" alt="">
+                    <span>Nickname1</span>
+                </div>
+                <div class="user-profile-chat">
+                    <img src="./p2.jpg" alt="">
+                    <span>Nickname2</span>
+                </div>
+            </div>
+            <div class="right-column">
+                <div id="messages-chat">
+
+                </div>
+
+                <form id="form-chat" action="">
+                    <input id="input-chat" autocomplete="off" placeholder="your message here" />
+                    <button>Send</button>
+                    <button>Next chat</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
+
     <script>
-        let counter = 0; 
+        window.addEventListener("load", function (event) {
+            let nickname = localStorage.getItem('nickname')
 
-        const socket = io({
-            auth: {
-                serverOffset: 0
-            },
-            ackTimeout: 10000,
-            retries: 3,
-        });
-
-        const form = document.getElementById('form');
-        const input = document.getElementById('input');
-        const messages = document.getElementById('messages');
-
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (input.value) {
-                // compute a unique offset
-                const clientOffset = `${socket.id}-${counter++}`;
-                socket.emit('chat message', input.value, clientOffset);
-                input.value = '';
+            if (nickname) {
+                // If nickname is available, hide the loading-nickname div and show the chat div
+                document.getElementById('loading-nickname').style.display = 'none';
+                document.getElementById('chat-container').style.display = 'block';
+                // You can add additional logic or content for the chat area here
             }
-        }); 
-
-        const toggleButton = document.getElementById('toggle-btn');
-
-        toggleButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (socket.connected) {
-                // socket.emit('chat message', "***temporary disconnect.");
-                toggleButton.innerText = 'Connect';
-                socket.disconnect();
-            } else {
-                // socket.emit('chat message', "***connected again.");
-                toggleButton.innerText = 'Disconnect';
-                socket.connect();
-            }
-        });
-
-        socket.on('chat message', (msg, serverOffset) => {
-            const item = document.createElement('li');
-            item.textContent = msg;
-            messages.appendChild(item);
-            window.scrollTo(0, document.body.scrollHeight);
-            socket.auth.serverOffset = serverOffset;
         });
     </script>
+
+    <script>
+
+        function obterNickname() {
+            var nickname = document.getElementById('nickname').value;
+            localStorage.setItem('nickname', nickname)
+
+            const socket = io({
+                auth: {
+                    // serverOffset: 0
+                    user: nickname,
+                },
+                ackTimeout: 10000,
+                retries: 3,
+            });
+
+            console.log(socket)
+            document.getElementById('loading-nickname').style.display = 'none';
+            document.getElementById('chat-container').style.display = 'block';
+        }
+    </script>
+
 </body>
 
 </html>
