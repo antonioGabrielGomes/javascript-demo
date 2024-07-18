@@ -1,0 +1,7 @@
+
+npx prisma migrate dev
+npm install @prisma/client
+
+npx prisma init
+
+npx prisma migrate dev
